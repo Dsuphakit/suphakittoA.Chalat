@@ -1,15 +1,12 @@
 import flet as ft
+import math
 
 def main(page: ft.Page):
     page.title = "เครื่องคิดเลข Flet"
 
-    # ช่องแสดงผลลัพธ์
     display = ft.TextField(value="", text_align="right", width=300, read_only=True)
-
-    # เก็บสมการ
     equation = ""
 
-    # ฟังก์ชันเมื่อกดปุ่ม
     def on_button_click(e):
         nonlocal equation
         val = e.control.text
@@ -17,7 +14,27 @@ def main(page: ft.Page):
             equation = ""
         elif val == "=":
             try:
-                equation = str(eval(equation))
+                expr = equation.replace("^", "**")
+                while "√" in expr:
+                    idx = expr.index("√")
+                    if expr[idx+1] == "(":
+                        count = 1
+                        end = idx+2
+                        while count > 0 and end < len(expr):
+                            if expr[end] == "(":
+                                count += 1
+                            elif expr[end] == ")":
+                                count -= 1
+                            end += 1
+                        expr = expr[:idx] + f"math.sqrt({expr[idx+2:end-1]})" + expr[end:]
+                    else:
+                        num = ""
+                        i = idx+1
+                        while i < len(expr) and (expr[i].isdigit() or expr[i] == "."):
+                            num += expr[i]
+                            i += 1
+                        expr = expr[:idx] + f"math.sqrt({num})" + expr[i:]
+                equation = str(eval(expr))
             except Exception:
                 equation = "Error"
         else:
@@ -25,24 +42,26 @@ def main(page: ft.Page):
         display.value = equation
         page.update()
 
-    # สร้างปุ่มตัวเลขและเครื่องหมาย
     buttons = [
         ["1", "2", "3", "+"],
         ["4", "5", "6", "-"],
         ["7", "8", "9", "*"],
-        ["C", "0", "=", "/"]
+        ["C", "0", "=", "/"],
+        ["√", "^", None, None]  # ใช้ None แทนช่องว่าง
     ]
 
     rows = []
     for row in buttons:
         btn_row = []
         for b in row:
-            btn_row.append(
-                ft.ElevatedButton(text=b, width=65, height=65, on_click=on_button_click)
-            )
+            if b is not None:
+                btn_row.append(
+                    ft.ElevatedButton(text=b, width=65, height=65, on_click=on_button_click)
+                )
+            else:
+                btn_row.append(ft.Container(width=65, height=65))  # ช่องว่าง
         rows.append(ft.Row(btn_row, alignment="center"))
 
-    # เพิ่ม element ลงในหน้า
     page.add(display)
     for r in rows:
         page.add(r)
